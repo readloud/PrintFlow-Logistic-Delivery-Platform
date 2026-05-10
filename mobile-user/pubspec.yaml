@@ -1,0 +1,74 @@
+# Minimum versions required
+environment:
+  sdk: '>=3.1.0 <4.0.0'
+  flutter: '>=3.13.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Core
+  cupertino_icons: ^1.0.6
+  google_fonts: ^6.1.0
+  provider: ^6.0.5
+  shared_preferences: ^2.2.2
+  
+  # Authentication
+  amazon_cognito_identity_dart_2: ^3.1.0
+  google_sign_in: ^6.1.0
+  facebook_auth: ^6.0.0
+  sign_in_with_apple: ^5.0.0
+  local_auth: ^2.1.6
+  
+  # Networking
+  dio: ^5.3.2
+  socket_io_client: ^2.0.3
+  web_socket_channel: ^2.4.0
+  
+  # Location & Maps
+  geolocator: ^10.1.0
+  google_maps_flutter: ^2.5.0
+  geocoding: ^2.1.1
+  
+  # UI Components
+  flutter_svg: ^2.0.9
+  cached_network_image: ^3.2.3
+  shimmer: ^3.0.0
+  pull_to_refresh: ^2.0.0
+  bottom_navy_bar: ^6.0.0
+  
+  # Payment & QR
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^3.5.7
+  
+  # Security
+  flutter_secure_storage: ^9.0.0
+  cryptography: ^2.5.0
+  totp: ^2.1.0
+  
+  # AI & ML
+  tflite_flutter: ^0.10.4
+  image: ^4.1.3
+  
+  # Utils
+  intl: ^0.18.1
+  url_launcher: ^6.1.14
+  package_info_plus: ^5.0.1
+  device_info_plus: ^9.1.0
+  connectivity_plus: ^5.0.2
+  
+  # Ads & Monetization
+  google_mobile_ads: ^5.0.0
+  
+  # Notifications
+  firebase_core: ^2.24.2
+  firebase_messaging: ^14.7.10
+  flutter_local_notifications: ^16.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  build_runner: ^2.4.7
+  flutter_native_splash: ^2.3.8
+  flutter_launcher_icons: ^0.13.1
