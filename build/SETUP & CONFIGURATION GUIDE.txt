@@ -1,0 +1,938 @@
+## ⚙️ SETUP & CONFIGURATION GUIDE
+
+### A. Prerequisites Installation
+
+```bash
+#!/bin/bash
+# setup.sh - Complete environment setup
+
+echo "🚀 Starting PRINTFLOW Setup..."
+
+# Update system
+sudo apt-get update && sudo apt-get upgrade -y
+
+# Install Node.js 18
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Install PostgreSQL 15
+sudo apt-get install -y postgresql postgresql-contrib
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+
+# Install Redis
+sudo apt-get install -y redis-server
+sudo systemctl start redis-server
+sudo systemctl enable redis-server
+
+# Install Nginx
+sudo apt-get install -y nginx
+sudo systemctl start nginx
+sudo systemctl enable nginx
+
+# Install Docker & Docker Compose
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+# Install Flutter
+cd ~
+git clone https://github.com/flutter/flutter.git -b stable
+echo 'export PATH="$PATH:$HOME/flutter/bin"' >> ~/.bashrc
+source ~/.bashrc
+flutter doctor --android-licenses
+flutter doctor
+
+# Install PM2
+sudo npm install -g pm2
+
+# Install AWS CLI
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+
+# Install Terraform
+wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt-get update && sudo apt-get install terraform
+
+echo "✅ Setup complete!"
+```
+
+### B. Environment Variables Configuration
+
+```bash
+# .env.example - Copy to .env and fill values
+
+# ==================== DATABASE ====================
+DATABASE_URL="postgresql://printflow:StrongPassword123@localhost:5432/printflow"
+POSTGRES_USER="printflow"
+POSTGRES_PASSWORD="StrongPassword123"
+POSTGRES_DB="printflow"
+
+# ==================== REDIS ====================
+REDIS_URL="redis://localhost:6379"
+REDIS_HOST="localhost"
+REDIS_PORT="6379"
+
+# ==================== AUTHENTICATION ====================
+JWT_SECRET="your-super-secret-jwt-key-min-32-chars"
+JWT_EXPIRES_IN="7d"
+REFRESH_TOKEN_SECRET="another-secret-key-for-refresh"
+
+# ==================== AWS COGNITO ====================
+COGNITO_REGION="ap-southeast-1"
+COGNITO_USER_POOL_ID="ap-southeast-1_XXXXXXXXX"
+COGNITO_APP_CLIENT_ID="xxxxxxxxxxxxxxxxxxxx"
+COGNITO_APP_CLIENT_SECRET="xxxxxxxxxxxxxxxxxxxx"
+
+# ==================== AWS SES ====================
+AWS_REGION="ap-southeast-1"
+AWS_ACCESS_KEY_ID="AKIAXXXXXXXXXXXXXXXX"
+AWS_SECRET_ACCESS_KEY="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+AWS_S3_BUCKET="printflow-uploads"
+AWS_SES_FROM_EMAIL="noreply@printflow.com"
+
+# ==================== MIDTRANS ====================
+MIDTRANS_SERVER_KEY="SB-Mid-server-xxxxx"
+MIDTRANS_CLIENT_KEY="SB-Mid-client-xxxxx"
+MIDTRANS_IS_PRODUCTION="false"
+
+# ==================== TWILIO ====================
+TWILIO_ACCOUNT_SID="ACxxxxxxxxxxxxxxxxxxxxx"
+TWILIO_AUTH_TOKEN="xxxxxxxxxxxxxxxxxxxxx"
+TWILIO_WHATSAPP_NUMBER="+14155238886"
+
+# ==================== GOOGLE MAPS ====================
+GOOGLE_MAPS_API_KEY="AIzaSyxxxxxxxxxxxxxxxxxxxxx"
+GOOGLE_RECAPTCHA_SITE_KEY="6Lcxxxxxxxxxxxxxxxxxxxx_xx"
+GOOGLE_RECAPTCHA_SECRET_KEY="6Lcxxxxxxxxxxxxxxxxxxxx_xx"
+
+# ==================== AI SERVICES ====================
+REMOVE_BG_API_KEY="7a8b9c0d1e2f3g4h5i6j"
+TESSERACT_PATH="/usr/bin/tesseract"
+
+# ==================== AUTH0 / SOCIAL LOGIN ====================
+GOOGLE_CLIENT_ID="xxxxx.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="GOCSPX-xxxxx"
+FACEBOOK_APP_ID="123456789012345"
+FACEBOOK_APP_SECRET="abcdef1234567890"
+APPLE_SERVICES_ID="com.printflow.service"
+APPLE_TEAM_ID="ABCDEF1234"
+
+# ==================== QUEUE & WORKER ====================
+BULK_EMAIL_QUEUE_URL="https://sqs.ap-southeast-1.amazonaws.com/123456789012/printflow-bulk-email"
+SQS_REGION="ap-southeast-1"
+
+# ==================== MONITORING ====================
+SENTRY_DSN="https://xxxxx@sentry.io/123456"
+DATADOG_API_KEY="xxxxxxxxxxxxxxxxxxxx"
+
+# ==================== SERVER ====================
+NODE_ENV="production"
+PORT="3000"
+CORS_ORIGIN="https://printflow.com,https://www.printflow.com"
+RATE_LIMIT_WINDOW_MS="900000"
+RATE_LIMIT_MAX_REQUESTS="100"
+
+# ==================== FEATURE FLAGS ====================
+ENABLE_SOCIAL_LOGIN="true"
+ENABLE_MFA="true"
+ENABLE_PASSKEY="false"
+ENABLE_BULK_EMAIL="true"
+ENABLE_ADMOB="false"
+```
+
+### C. Database Setup
+
+```sql
+-- init.sql - Database initialization
+CREATE DATABASE printflow;
+CREATE DATABASE printflow_test;
+
+CREATE USER printflow WITH PASSWORD 'StrongPassword123';
+ALTER USER printflow WITH SUPERUSER;
+
+GRANT ALL PRIVILEGES ON DATABASE printflow TO printflow;
+GRANT ALL PRIVILEGES ON DATABASE printflow_test TO printflow;
+
+\c printflow;
+
+-- Enable extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "postgis";
+
+-- Create schemas
+CREATE SCHEMA IF NOT EXISTS printflow;
+CREATE SCHEMA IF NOT EXISTS analytics;
+
+-- Set search path
+ALTER DATABASE printflow SET search_path TO printflow, analytics, public;
+```
+
+### D. Prisma Schema
+
+```prisma
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  phone           String?   @unique
+  password        String
+  name            String
+  role            Role      @default(USER)
+  isVerified      Boolean   @default(false)
+  isSubscribed    Boolean   @default(true)
+  lastLogin       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  orders          Order[]
+  deliveries      Delivery[]
+  sessions        Session[]
+  
+  @@index([email])
+  @@index([role])
+}
+
+model Order {
+  id              String        @id @default(uuid())
+  orderNumber     String        @unique
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  fileName        String
+  fileUrl         String
+  pages           Int
+  copies          Int
+  totalPrice      Float
+  deliveryMethod  DeliveryMethod
+  paymentMethod   PaymentMethod
+  paymentStatus   PaymentStatus @default(PENDING)
+  deliveryStatus  DeliveryStatus @default(PENDING)
+  address         String?
+  hubPointId      String?
+  hubPoint        HubPoint?     @relation(fields: [hubPointId], references: [id])
+  driverId        String?
+  driver          Driver?       @relation(fields: [driverId], references: [id])
+  partnerId       String?
+  partner         Partner?      @relation(fields: [partnerId], references: [id])
+  codAmount       Float?
+  codReceived     Float?
+  aiVerified      Boolean       @default(false)
+  aiSuggestions   Json?
+  trackingHistory Json[]
+  estimatedArrival DateTime?
+  deliveredAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  deliveries      Delivery[]
+  
+  @@index([userId])
+  @@index([driverId])
+  @@index([deliveryStatus])
+  @@index([createdAt])
+}
+
+model Driver {
+  id              String        @id @default(uuid())
+  userId          String        @unique
+  user            User          @relation(fields: [userId], references: [id])
+  licenseNumber   String
+  vehicleType     String
+  vehiclePlate    String
+  status          DriverStatus  @default(PENDING)
+  currentLat      Float?
+  currentLng      Float?
+  lastSeen        DateTime?
+  totalDeliveries Int           @default(0)
+  rating          Float         @default(5.0)
+  cashHeld        Float         @default(0)
+  earnings        Float         @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  orders          Order[]
+  deliveries      Delivery[]
+  
+  @@index([status])
+  @@index([currentLat, currentLng])
+}
+
+model Partner {
+  id              String        @id @default(uuid())
+  userId          String        @unique
+  user            User          @relation(fields: [userId], references: [id])
+  businessName    String
+  businessType    String
+  address         String
+  lat             Float?
+  lng             Float?
+  phone           String
+  status          PartnerStatus @default(PENDING)
+  commission      Float         @default(0.1)
+  totalOrders     Int           @default(0)
+  totalRevenue    Float         @default(0)
+  printers        Printer[]?
+  stock           Stock[]?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  orders          Order[]
+  
+  @@index([status])
+}
+
+model HubPoint {
+  id              String        @id @default(uuid())
+  name            String
+  type            HubType
+  address         String
+  lat             Float
+  lng             Float
+  flatFee         Float
+  managerName     String?
+  managerPhone    String?
+  operatingHours  Json?
+  isActive        Boolean       @default(true)
+  partnerId       String?
+  partner         Partner?      @relation(fields: [partnerId], references: [id])
+  orders          Order[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@index([type])
+  @@index([isActive])
+}
+
+model Campaign {
+  id              String        @id @default(uuid())
+  name            String
+  subject         String
+  templateName    String
+  templateData    Json
+  status          CampaignStatus @default(DRAFT)
+  scheduledAt     DateTime
+  totalRecipients Int           @default(0)
+  sentCount       Int           @default(0)
+  failedCount     Int           @default(0)
+  openCount       Int           @default(0)
+  clickCount      Int           @default(0)
+  bounceCount     Int           @default(0)
+  complaintCount  Int           @default(0)
+  sentAt          DateTime?
+  completedAt     DateTime?
+  createdBy       String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  recipients      CampaignRecipient[]
+  
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+model CampaignRecipient {
+  id              String        @id @default(uuid())
+  campaignId      String
+  campaign        Campaign      @relation(fields: [campaignId], references: [id])
+  email           String
+  name            String?
+  status          RecipientStatus @default(PENDING)
+  messageId       String?
+  sentAt          DateTime?
+  openedAt        DateTime?
+  clickedAt       DateTime?
+  bouncedAt       DateTime?
+  complaintAt     DateTime?
+  errorMessage    String?
+  createdAt       DateTime      @default(now())
+  
+  @@unique([campaignId, email])
+  @@index([email])
+  @@index([status])
+}
+
+model EmailSuppression {
+  id              String        @id @default(uuid())
+  email           String        @unique
+  reason          SuppressionReason
+  details         Json?
+  expiresAt       DateTime?
+  createdAt       DateTime      @default(now())
+  
+  @@index([email])
+  @@index([expiresAt])
+}
+
+enum Role {
+  USER
+  DRIVER
+  PARTNER
+  ADMIN
+}
+
+enum DriverStatus {
+  PENDING
+  ACTIVE
+  BUSY
+  OFFLINE
+  SUSPENDED
+}
+
+enum PartnerStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum DeliveryMethod {
+  COURIER_COD
+  COURIER_NON_COD
+  HUB_POINT
+}
+
+enum PaymentMethod {
+  COD
+  TRANSFER
+  QRIS
+  CREDIT_CARD
+  EWALLET
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum DeliveryStatus {
+  PENDING
+  PROCESSING
+  READY
+  PICKED_UP
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+enum HubType {
+  SCHOOL
+  OFFICE
+  PUBLIC
+}
+
+enum CampaignStatus {
+  DRAFT
+  PENDING
+  SENDING
+  COMPLETED
+  CANCELLED
+  PAUSED
+}
+
+enum RecipientStatus {
+  PENDING
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  BOUNCED
+  COMPLAINT
+  FAILED
+}
+
+enum SuppressionReason {
+  BOUNCE
+  COMPLAINT
+  USER_UNSUBSCRIBED
+  ADMIN_REMOVED
+  INVALID_EMAIL
+}
+```
+
+---
+
+## 🔧 TROUBLESHOOTING GUIDE
+
+### A. Common Issues & Solutions
+
+```yaml
+# TROUBLESHOOTING_CHEATSHEET.md
+
+# 1. DATABASE CONNECTION ISSUES
+error: "Error: P1001: Can't reach database server"
+solution: |
+  - Check PostgreSQL service: sudo systemctl status postgresql
+  - Verify DATABASE_URL in .env
+  - Check firewall: sudo ufw allow 5432
+  - Test connection: psql -d postgres -U printflow -h localhost
+
+# 2. REDIS CONNECTION ISSUES
+error: "Error: connect ECONNREFUSED 127.0.0.1:6379"
+solution: |
+  - Start Redis: sudo systemctl start redis-server
+  - Check status: redis-cli ping (should return PONG)
+  - Check config: sudo nano /etc/redis/redis.conf
+
+# 3. JWT VERIFICATION FAILED
+error: "JsonWebTokenError: invalid signature"
+solution: |
+  - Ensure JWT_SECRET is same across all services
+  - Check if secret is at least 32 characters
+  - Regenerate secret: openssl rand -base64 32
+
+# 4. COGNITO AUTHENTICATION FAILED
+error: "NotAuthorizedException: Incorrect username or password"
+solution: |
+  - Verify user exists in Cognito User Pool
+  - Check if account is confirmed
+  - Reset password via admin: aws cognito-idp admin-set-user-password
+
+# 5. SES EMAIL NOT SENDING
+error: "Email address is not verified"
+solution: |
+  - Move from sandbox to production via AWS Console
+  - Or add email to verified identities for testing
+  - Check sending limits: aws ses get-send-quota
+
+# 6. SOCKET.IO CONNECTION FAILED
+error: "WebSocket connection to 'wss://...' failed"
+solution: |
+  - Check Nginx WebSocket proxy configuration
+  - Verify CORS settings in backend
+  - Check firewall: sudo ufw allow 3000
+  - Test with: wscat -c ws://localhost:3000
+
+# 7. MIDTRANS PAYMENT ERROR
+error: "Unauthorized: Invalid server key"
+solution: |
+  - Check environment: sandbox vs production
+  - Verify server key matches environment
+  - Check if API is enabled in Midtrans dashboard
+
+# 8. FLUTTER BUILD FAILED
+error: "Execution failed for task ':app:compileFlutterBuildRelease'"
+solution: |
+  - Clean build: flutter clean
+  - Get packages: flutter pub get
+  - Check Gradle version in android/build.gradle
+  - Run: flutter doctor -v
+
+# 9. AWS LAMBDA TIMEOUT
+error: "Task timed out after 10.00 seconds"
+solution: |
+  - Increase Lambda timeout in configuration
+  - Optimize code for faster execution
+  - Move heavy processing to async queues
+  - Use Step Functions for long-running tasks
+
+# 10. SQS MESSAGE NOT PROCESSING
+error: "Message not visible in queue"
+solution: |
+  - Check visibility timeout settings
+  - Ensure dead-letter queue is configured
+  - Check worker is running: pm2 list
+  - Monitor queue: aws sqs get-queue-attributes
+```
+
+### B. Health Check Script
+
+```javascript
+// scripts/health-check.js
+const axios = require('axios');
+const { PrismaClient } = require('@prisma/client');
+const redis = require('redis');
+
+const prisma = new PrismaClient();
+
+async function healthCheck() {
+  console.log('🔍 Running Health Check...\n');
+  
+  const results = {
+    database: false,
+    redis: false,
+    api: false,
+    websocket: false,
+    ses: false,
+    cognito: false
+  };
+  
+  // Check Database
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    results.database = true;
+    console.log('✅ Database: Connected');
+  } catch (error) {
+    console.log('❌ Database:', error.message);
+  }
+  
+  // Check Redis
+  try {
+    const client = redis.createClient({ url: process.env.REDIS_URL });
+    await client.connect();
+    await client.ping();
+    await client.disconnect();
+    results.redis = true;
+    console.log('✅ Redis: Connected');
+  } catch (error) {
+    console.log('❌ Redis:', error.message);
+  }
+  
+  // Check API
+  try {
+    const response = await axios.get('http://localhost:3000/health');
+    if (response.status === 200) {
+      results.api = true;
+      console.log('✅ API: Up');
+    }
+  } catch (error) {
+    console.log('❌ API:', error.message);
+  }
+  
+  // Print Summary
+  console.log('\n📊 Summary:');
+  const allHealthy = Object.values(results).every(v => v === true);
+  console.log(allHealthy ? '✅ All systems operational' : '⚠️ Some services are down');
+  
+  return results;
+}
+
+healthCheck().then(() => process.exit(0));
+```
+
+### C. Log Monitoring
+
+```bash
+#!/bin/bash
+# scripts/monitor.sh
+
+echo "📊 PRINTFLOW Monitoring Dashboard"
+echo "================================"
+echo ""
+
+# Check PM2 processes
+echo "🚀 PM2 Processes:"
+pm2 list
+echo ""
+
+# Check PostgreSQL
+echo "🐘 PostgreSQL Status:"
+sudo systemctl status postgresql --no-pager | grep "Active"
+echo ""
+
+# Check Redis
+echo "📦 Redis Status:"
+redis-cli ping
+echo ""
+
+# Check Nginx
+echo "🌐 Nginx Status:"
+sudo systemctl status nginx --no-pager | grep "Active"
+echo ""
+
+# Recent errors
+echo "📝 Recent Error Logs (last 10 lines):"
+tail -n 10 backend/logs/error.log 2>/dev/null || echo "No error logs found"
+echo ""
+
+# Resource usage
+echo "💻 Resource Usage:"
+top -bn1 | grep "Cpu(s)"
+free -h | grep "Mem"
+df -h | grep "/dev/"
+```
+
+---
+
+## 📋 RINGKASAN FEATURE
+
+### A. Core Features
+
+| # | Feature | Description | Status |
+|---|---------|-------------|--------|
+| 1 | **COD Verification** | Driver input jumlah uang di app untuk menyelesaikan pesanan COD | ✅ |
+| 2 | **Antar Jemput** | Sistem antar jemput pesanan dengan real-time tracking | ✅ |
+| 3 | **Driver Management** | Registrasi driver internal & freelance (Ojol personal) | ✅ |
+| 4 | **School Hub Point** | Pengiriman ke titik jemput di sekolah mitra dengan tarif flat | ✅ |
+| 5 | **Office Hub Point** | Pengiriman ke kantor mitra dengan tarif flat | ✅ |
+| 6 | **Public Hub Point** | Pengiriman ke titik publik (masjid, kantor pos, dll.) | ✅ |
+| 7 | **E-Receipt WA** | Driver kirim tanda terima digital via WhatsApp | ✅ |
+| 8 | **Document Security Bag** | Tracking khusus dengan foto bukti segel | ✅ |
+
+### B. AI Features
+
+| # | Feature | Description | Status |
+|---|---------|-------------|--------|
+| 1 | **AI Print Validator** | Verifikasi otomatis kelayakan file (resolusi, margin) | ✅ |
+| 2 | **AI Image Upscaler** | Meningkatkan resolusi gambar pecah | ✅ |
+| 3 | **AI Background Remover** | Hapus background foto instan sebelum cetak | ✅ |
+| 4 | **AI Bio-Verification** | Face recognition untuk driver saat shift | ✅ |
+| 5 | **AI Smart Navigation** | Navigasi hindari macet & grouping titik searah | ✅ |
+| 6 | **AI Photo QC** | Cek kejelasan foto bukti COD | ✅ |
+| 7 | **AI Demand Forecasting** | Prediksi lonjakan permintaan cetak | ✅ |
+| 8 | **AI Fraud Detection** | Deteksi transaksi mencurigakan pada COD | ✅ |
+| 9 | **OCR Document Extraction** | Ekstrak data dari dokumen resmi (KTP, dll.) | ✅ |
+
+### C. Security Features
+
+| # | Feature | Description | Status |
+|---|---------|-------------|--------|
+| 1 | **JWT Authentication** | Token-based auth dengan refresh token | ✅ |
+| 2 | **AWS Cognito Integration** | User pool dengan Social Login | ✅ |
+| 3 | **MFA (TOTP/SMS)** | Two-factor authentication via Google Authenticator/SMS | ✅ |
+| 4 | **Passkey (WebAuthn)** | Passwordless login dengan biometrik | ✅ |
+| 5 | **reCAPTCHA v3** | Invisible captcha untuk sign-up & login | ✅ |
+| 6 | **Rate Limiting** | Mencegah brute force & DDoS | ✅ |
+| 7 | **RBAC (Role-based)** | Admin, Partner, Driver, User roles | ✅ |
+| 8 | **Email Bounce Handling** | Auto-handle email bounces & complaints | ✅ |
+| 9 | **SQS Queue Protection** | Asynchronous processing untuk bulk operations | ✅ |
+
+### D. Payment & Monetization
+
+| # | Feature | Description | Status |
+|---|---------|-------------|--------|
+| 1 | **Midtrans Integration** | Payment gateway: bank transfer, QRIS, e-wallet | ✅ |
+| 2 | **COD Management** | Cash on Delivery dengan verification | ✅ |
+| 3 | **Settlement System** | Driver setoran tunai ke admin end-of-day | ✅ |
+| 4 | **AdMob (Mobile)** | Banner, interstitial, rewarded ads | ✅ |
+| 5 | **AdSense (Web)** | Google AdSense for website monetization | ✅ |
+| 6 | **Commission System** | Auto-calculate for partners & freelancers | ✅ |
+
+### E. Communication Features
+
+| # | Feature | Description | Status |
+|---|---------|-------------|--------|
+| 1 | **Socket.io Realtime** | Live tracking driver location | ✅ |
+| 2 | **WhatsApp E-Receipt** | Twilio integration for digital receipts | ✅ |
+| 3 | **Bulk Email Campaign** | SES for newsletter & promotions | ✅ |
+| 4 | **Push Notifications** | FCM for mobile notifications | ✅ |
+| 5 | **Email Templates** | Custom HTML email with SES | ✅ |
+
+---
+
+## 🚀 TEKNOLOGI & KEUNGGULAN
+
+### A. Technology Stack
+
+```yaml
+Backend:
+  Runtime: Node.js 18+
+  Framework: Express.js
+  ORM: Prisma
+  Auth: JWT + AWS Cognito
+  Validation: Joi / Zod
+  Logging: Winston + Morgan
+
+Database:
+  Primary: PostgreSQL 15
+  Cache: Redis 7
+  Storage: AWS S3
+
+Frontend Web:
+  Framework: React 18 + Vite
+  Styling: TailwindCSS
+  State Management: Context API + Redux Toolkit
+  Charts: Recharts
+  Maps: Google Maps API
+
+Mobile Apps:
+  Platform: Flutter 3.16+
+  State Management: Provider + Riverpod
+  Maps: google_maps_flutter
+  Storage: shared_preferences + flutter_secure_storage
+
+Infrastructure:
+  Cloud: AWS (ap-southeast-1)
+  Compute: ECS Fargate / EC2
+  Database: RDS PostgreSQL
+  Cache: ElastiCache Redis
+  CDN: CloudFront
+  Email: SES
+  Queue: SQS
+  Events: SNS
+  Auth: Cognito
+  IaC: Terraform
+  CI/CD: GitHub Actions
+
+AI/ML:
+  Image Processing: TensorFlow Lite
+  OCR: Tesseract
+  Face Recognition: OpenCV
+  Route Optimization: Google OR-Tools
+  Text Extraction: AWS Textract (planned)
+
+Payment:
+  Gateway: Midtrans
+  Methods: 
+    - Bank Transfer (BCA, Mandiri, BNI, BRI)
+    - QRIS
+    - E-Wallet (GoPay, ShopeePay, OVO)
+    - Credit Card
+
+Monitoring:
+  Logs: CloudWatch + ELK Stack
+  Metrics: Prometheus + Grafana
+  Tracing: AWS X-Ray
+  Alerts: SNS + Slack
+
+Security:
+  Auth: Cognito + JWT
+  MFA: TOTP + SMS
+  Passkey: WebAuthn
+  Captcha: reCAPTCHA v3
+  WAF: AWS WAF
+  SSL: Let's Encrypt / ACM
+```
+
+### B. Unique Advantages (Keunggulan)
+
+| # | Keunggulan | Competitors | PrintFlow |
+|---|------------|-------------|-----------|
+| 1 | **Hyper-Local Delivery** | Kurir reguler (1-3 hari) | COD + driver internal (2-4 jam) |
+| 2 | **Hub Point System** | Tidak ada | Sekolah, Kantor, Publik (tarif flat) |
+| 3 | **AI Print Validation** | Tidak ada | Auto-check resolution, margin, bleed |
+| 4. | **AI Smart Navigation** | Google Maps biasa | Optimasi rute + grouping COD |
+| 5 | **AI Fraud Detection** | Manual | Auto-detect pattern curang |
+| 6 | **School Ambassador Program** | Tidak ada | Kerjasama OSIS/Koperasi |
+| 7 | **Multi-Platform** | Web saja | Web + Android + iOS (3 roles) |
+| 8 | **Flexible Payment** | Transfer only | COD + Transfer + QRIS + E-Wallet |
+| 9 | **Document OCR** | Tidak ada | Auto-extract data dokumen |
+| 10 | **WhatsApp E-Receipt** | Email only | WhatsApp + Email |
+
+### C. Performance Metrics
+
+```yaml
+Target Performance:
+  API Response Time: < 200ms (p95)
+  Page Load Time: < 2.5 seconds
+  Map Rendering: < 1 second
+  File Upload: < 3 seconds (10MB)
+  AI Validation: < 500ms
+  Real-time Tracking Latency: < 1 second
+  Database Query: < 50ms
+
+Scalability:
+  Concurrent Users: 10,000+
+  Daily Orders: 50,000+
+  Drivers Active: 500+
+  Hub Points: 1,000+
+  Monthly Email: 500,000+
+  Storage: Unlimited (S3)
+
+Availability:
+  Uptime Target: 99.9%
+  RTO: < 30 minutes
+  RPO: < 5 minutes
+  DR: Multi-AZ deployment
+```
+
+### D. Cost Estimation (Monthly)
+
+```yaml
+AWS Services:
+  EC2/EKS: $200 - $500
+  RDS PostgreSQL: $150 - $300
+  ElastiCache Redis: $50 - $150
+  S3 Storage: $20 - $100
+  CloudFront: $30 - $100
+  SES (50k emails): $50
+  SQS + SNS: $10 - $30
+  Cognito: $50 (50k MAU)
+  Total AWS: $560 - $1,280
+
+Third Party:
+  Midtrans: 0.7% - 0.9% per transaksi
+  Twilio WhatsApp: $0.005 - $0.01 per message
+  Google Maps: $200 free credit (often enough)
+  remove.bg: $0.10 - $0.20 per image
+
+Total Monthly: $800 - $2,000 (scalable)
+```
+
+---
+
+## 🎯 Quick Deployment Commands
+
+```bash
+# 1. Clone repository
+git clone https://github.com/printflow/printflow.git
+cd printflow
+
+# 2. Setup environment
+cp backend/.env.example backend/.env
+cp frontend-web/.env.example frontend-web/.env
+nano backend/.env  # Fill your values
+
+# 3. Database setup
+createdb printflow
+npx prisma migrate deploy
+npx prisma db seed
+
+# 4. Start backend
+cd backend
+npm install
+npm run build
+pm2 start ecosystem.config.js
+pm2 save
+
+# 5. Start frontend
+cd ../frontend-web
+npm install
+npm run build
+sudo cp -r dist/* /var/www/html/
+
+# 6. Configure Nginx
+sudo cp nginx.conf /etc/nginx/sites-available/printflow
+sudo ln -s /etc/nginx/sites-available/printflow /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+
+# 7. Setup SSL
+sudo certbot --nginx -d printflow.com -d api.printflow.com
+
+# 8. Run health check
+npm run health
+
+# 9. Setup monitoring
+pm2 monit
+node scripts/health-check.js
+```
+
+---
+
+1. Backend Setup
+bash
+cd backend
+npm install
+npx prisma migrate dev --name init
+npx prisma generate
+npm run dev
+
+2. Frontend Web Setup
+bash
+cd frontend-web
+npm install
+npm run dev
+
+3. Flutter Setup
+bash
+cd flutter_user
+flutter pub get
+flutter run
+
+cd flutter_driver
+flutter pub get
+flutter run

@@ -1,0 +1,280 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CUSTOMER
+  DRIVER
+  PARTNER
+  ADMIN
+  SCHOOL_ADMIN
+}
+
+enum OrderStatus {
+  PENDING          // Menunggu pembayaran (NON-COD) / Menunggu konfirmasi (COD)
+  PAID             // Sudah bayar (NON-COD)
+  PROCESSING       // Sedang diproses/dicetak
+  READY_FOR_PICKUP // Siap diambil driver
+  PICKED_UP        // Sudah diambil driver
+  IN_TRANSIT       // Dalam perjalanan
+  DELIVERED        // Barang terkirim
+  COMPLETED        // Pesanan selesai + COD sudah diverifikasi
+  CANCELLED        // Dibatalkan
+  FAILED           // Gagal
+}
+
+enum PaymentMethod {
+  COD
+  BANK_TRANSFER
+  CREDIT_CARD
+  E_WALLET
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum HubPointType {
+  SCHOOL
+  OFFICE
+  PUBLIC
+}
+
+enum DriverStatus {
+  OFFLINE
+  ONLINE
+  DELIVERING
+  BREAK
+}
+
+model User {
+  id            String        @id @default(cuid())
+  email         String        @unique
+  phone         String        @unique
+  password      String
+  fullName      String
+  role          UserRole      @default(CUSTOMER)
+  isActive      Boolean       @default(true)
+  isVerified    Boolean       @default(false)
+  faceData      String?       @map("face_data") // Face recognition data
+  bankAccount   Json?         @map("bank_account")
+  companyProfile Json?        @map("company_profile")
+  avatar        String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  orders        Order[]
+  deliveries    Delivery[]
+  driverProfile Driver?
+  partnerProfile Partner?
+}
+
+model Driver {
+  id              String       @id @default(cuid())
+  userId          String       @unique
+  vehicleType     String
+  vehiclePlate    String
+  currentLat      Float?       @map("current_lat")
+  currentLng      Float?       @map("current_lng")
+  status          DriverStatus @default(OFFLINE)
+  shiftStart      DateTime?    @map("shift_start")
+  shiftEnd        DateTime?    @map("shift_end")
+  totalEarnings   Float        @default(0) @map("total_earnings")
+  currentBalance  Float        @default(0) @map("current_balance") // Saldo yang belum disetor
+  rating          Float        @default(5.0)
+  totalDeliveries Int          @default(0) @map("total_deliveries")
+  
+  user            User         @relation(fields: [userId], references: [id])
+  deliveries      Delivery[]
+  shifts          DriverShift[]
+}
+
+model DriverShift {
+  id          String     @id @default(cuid())
+  driverId    String     @map("driver_id")
+  startTime   DateTime   @map("start_time")
+  endTime     DateTime?  @map("end_time")
+  faceVerified Boolean   @default(false) @map("face_verified")
+  selfieUrl   String?    @map("selfie_url")
+  
+  driver      Driver     @relation(fields: [driverId], references: [id])
+}
+
+model Partner {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  businessName    String   @map("business_name")
+  businessType    String   @map("business_type")
+  address         String
+  lat             Float
+  lng             Float
+  isVerified      Boolean  @default(false) @map("is_verified")
+  verifiedAt      DateTime? @map("verified_at")
+  faceVerifiedAt  DateTime? @map("face_verified_at")
+  bankAccount     Json     @map("bank_account")
+  
+  user            User     @relation(fields: [userId], references: [id])
+  orders          Order[]
+  hubPoints       HubPoint[]
+}
+
+model HubPoint {
+  id          String        @id @default(cuid())
+  name        String
+  type        HubPointType
+  address     String
+  lat         Float
+  lng         Float
+  flatFee     Float         @map("flat_fee") // Tarif flat
+  partnerId   String?       @map("partner_id")
+  isActive    Boolean       @default(true)
+  
+  partner     Partner?      @relation(fields: [partnerId], references: [id])
+  orders      Order[]
+}
+
+model Order {
+  id              String         @id @default(cuid())
+  orderNumber     String         @unique @map("order_number")
+  userId          String         @map("user_id")
+  driverId        String?        @map("driver_id")
+  partnerId       String?        @map("partner_id")
+  hubPointId      String?        @map("hub_point_id")
+  
+  // Order details
+  items           Json           // Array of print items
+  totalPrintCost  Float          @map("total_print_cost")
+  deliveryFee     Float          @map("delivery_fee")
+  totalAmount     Float          @map("total_amount")
+  
+  // Delivery info
+  deliveryMethod  String         @map("delivery_method") // "courier" or "hub_pickup"
+  pickupAddress   Json?          @map("pickup_address")
+  deliveryAddress Json?          @map("delivery_address")
+  
+  // Payment
+  paymentMethod   PaymentMethod  @map("payment_method")
+  paymentStatus   PaymentStatus  @default(PENDING) @map("payment_status")
+  paymentId       String?        @map("payment_id")
+  codAmount       Float?         @map("cod_amount") // Amount received by driver
+  codVerifiedAt   DateTime?      @map("cod_verified_at")
+  
+  // Status
+  status          OrderStatus    @default(PENDING)
+  
+  // Timestamps
+  scheduledAt     DateTime?      @map("scheduled_at")
+  processingAt    DateTime?      @map("processing_at")
+  readyAt         DateTime?      @map("ready_at")
+  pickedUpAt      DateTime?      @map("picked_up_at")
+  deliveredAt     DateTime?      @map("delivered_at")
+  completedAt     DateTime?      @map("completed_at")
+  cancelledAt     DateTime?      @map("cancelled_at")
+  
+  // AI Data
+  aiVerified      Boolean        @default(false) @map("ai_verified")
+  aiValidationData Json?         @map("ai_validation_data")
+  routeOptimized  Boolean        @default(false) @map("route_optimized")
+  predictedETA    DateTime?      @map("predicted_eta")
+  
+  // Security
+  sealedPhotoUrl  String?        @map("sealed_photo_url") // Foto dokumen tersegel
+  deliveryPhotoUrl String?       @map("delivery_photo_url") // Foto bukti serah terima
+  photoQuality    Float?         @map("photo_quality") // AI photo quality score
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  // Relations
+  user            User           @relation(fields: [userId], references: [id])
+  driver          Driver?        @relation(fields: [driverId], references: [id])
+  partner         Partner?       @relation(fields: [partnerId], references: [id])
+  hubPoint        HubPoint?      @relation(fields: [hubPointId], references: [id])
+  deliveries      Delivery[]
+  payments        Payment[]
+}
+
+model Delivery {
+  id          String      @id @default(cuid())
+  orderId     String      @map("order_id")
+  driverId    String      @map("driver_id")
+  
+  // Route
+  routeOrder  Int         @map("route_order") // Urutan dalam rute optimal
+  distance    Float?      // Jarak tempuh
+  duration    Int?        // Durasi dalam detik
+  
+  // Status
+  status      OrderStatus @default(PENDING)
+  
+  // Proof
+  startPhoto  String?     @map("start_photo") // Foto segel saat berangkat
+  endPhoto    String?     @map("end_photo") // Foto bukti serah terima
+  codReceived Float?      @map("cod_received") // Uang COD yang diterima
+  codPhoto    String?     @map("cod_photo") // Foto bukti terima uang
+  
+  // Timestamps
+  startedAt   DateTime?   @map("started_at")
+  completedAt DateTime?   @map("completed_at")
+  
+  order       Order       @relation(fields: [orderId], references: [id])
+  driver      Driver      @relation(fields: [driverId], references: [id])
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  orderId       String        @map("order_id")
+  amount        Float
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  midtransId    String?       @map("midtrans_id")
+  virtualAccount String?      @map("virtual_account")
+  paymentUrl    String?       @map("payment_url")
+  paidAt        DateTime?     @map("paid_at")
+  
+  order         Order         @relation(fields: [orderId], references: [id])
+}
+
+model Campaign {
+  id              String   @id @default(cuid())
+  name            String
+  subject         String
+  content         String   @db.Text
+  targetRole      UserRole @map("target_role")
+  scheduledAt     DateTime? @map("scheduled_at")
+  sentAt          DateTime? @map("sent_at")
+  totalSent       Int      @default(0) @map("total_sent")
+  totalOpened     Int      @default(0) @map("total_opened")
+  totalClicked    Int      @default(0) @map("total_clicked")
+  totalBounced    Int      @default(0) @map("total_bounced")
+  
+  createdAt       DateTime @default(now())
+}
+
+model AILog {
+  id          String   @id @default(cuid())
+  type        String   // "ocr", "face_verification", "photo_qc", "route_optimization"
+  input       Json
+  output      Json
+  confidence  Float?
+  processingTime Int   @map("processing_time")
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  title       String
+  body        String
+  data        Json?
+  isRead      Boolean  @default(false) @map("is_read")
+  createdAt   DateTime @default(now())
+}

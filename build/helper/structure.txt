@@ -1,0 +1,393 @@
+printflow/
+│
+├── 📂 backend/
+│   ├── 📂 src/
+│   │   ├── 📂 controllers/
+│   │   │   ├── auth.controller.js
+│   │   │   ├── order.controller.js
+│   │   │   ├── driver.controller.js
+│   │   │   ├── partner.controller.js
+│   │   │   ├── payment.controller.js
+│   │   │   ├── admin.controller.js
+│   │   │   └── campaign.controller.js
+│   │   │
+│   │   ├── 📂 services/
+│   │   │   ├── auth.service.js
+│   │   │   ├── order.service.js
+│   │   │   ├── payment.service.js
+│   │   │   ├── whatsapp.service.js
+│   │   │   ├── socket.service.js
+│   │   │   ├── route.service.js
+│   │   │   ├── ai.service.js
+│   │   │   ├── bulkEmail.service.js
+│   │   │   └── ses.service.js
+│   │   │
+│   │   ├── 📂 middleware/
+│   │   │   ├── auth.js
+│   │   │   ├── upload.js
+│   │   │   ├── validation.js
+│   │   │   ├── rateLimiter.js
+│   │   │   ├── security.js
+│   │   │   └── errorHandler.js
+│   │   │
+│   │   ├── 📂 models/
+│   │   │   ├── user.model.js
+│   │   │   ├── order.model.js
+│   │   │   ├── driver.model.js
+│   │   │   ├── campaign.model.js
+│   │   │   └── payment.model.js
+│   │   │
+│   │   ├── 📂 routes/
+│   │   │   ├── auth.routes.js
+│   │   │   ├── order.routes.js
+│   │   │   ├── driver.routes.js
+│   │   │   ├── partner.routes.js
+│   │   │   ├── payment.routes.js
+│   │   │   ├── admin.routes.js
+│   │   │   ├── campaign.routes.js
+│   │   │   ├── webhook.routes.js
+│   │   │   └── unsubscribe.routes.js
+│   │   │
+│   │   ├── 📂 utils/
+│   │   │   ├── logger.js
+│   │   │   ├── helpers.js
+│   │   │   ├── constants.js
+│   │   │   ├── validators.js
+│   │   │   └── formatters.js
+│   │   │
+│   │   ├── 📂 config/
+│   │   │   ├── database.js
+│   │   │   ├── redis.js
+│   │   │   ├── aws.js
+│   │   │   ├── midtrans.js
+│   │   │   ├── twilio.js
+│   │   │   └── cognito.js
+│   │   │
+│   │   ├── 📂 workers/
+│   │   │   ├── emailWorker.js
+│   │   │   ├── orderWorker.js
+│   │   │   └── cleanupWorker.js
+│   │   │
+│   │   └── app.js
+│   │
+│   ├── 📂 prisma/
+│   │   ├── schema.prisma
+│   │   └── seed.js
+│   │
+│   ├── 📂 uploads/
+│   │   ├── documents/
+│   │   ├── prints/
+│   │   └── temp/
+│   │
+│   ├── 📂 logs/
+│   ├── 📂 tests/
+│   │   ├── unit/
+│   │   ├── integration/
+│   │   └── e2e/
+│   │
+│   ├── .env
+│   ├── .env.example
+│   ├── .gitignore
+│   ├── Dockerfile
+│   ├── docker-compose.yml
+│   ├── package.json
+│   ├── package-lock.json
+│   └── ecosystem.config.js
+│
+├── 📂 frontend-web/
+│   ├── 📂 public/
+│   │   ├── index.html
+│   │   ├── favicon.ico
+│   │   ├── manifest.json
+│   │   └── robots.txt
+│   │
+│   ├── 📂 src/
+│   │   ├── 📂 assets/
+│   │   │   ├── images/
+│   │   │   ├── icons/
+│   │   │   └── fonts/
+│   │   │
+│   │   ├── 📂 components/
+│   │   │   ├── 📂 common/
+│   │   │   │   ├── Header.jsx
+│   │   │   │   ├── Sidebar.jsx
+│   │   │   │   ├── Footer.jsx
+│   │   │   │   ├── Loading.jsx
+│   │   │   │   ├── Modal.jsx
+│   │   │   │   └── Toast.jsx
+│   │   │   │
+│   │   │   ├── 📂 dashboard/
+│   │   │   │   ├── StatCard.jsx
+│   │   │   │   ├── RevenueChart.jsx
+│   │   │   │   ├── OrderTimeline.jsx
+│   │   │   │   └── DriverMap.jsx
+│   │   │   │
+│   │   │   ├── 📂 orders/
+│   │   │   │   ├── OrderTable.jsx
+│   │   │   │   ├── OrderDetail.jsx
+│   │   │   │   ├── OrderStatusBadge.jsx
+│   │   │   │   └── OrderFilter.jsx
+│   │   │   │
+│   │   │   ├── 📂 drivers/
+│   │   │   │   ├── DriverCard.jsx
+│   │   │   │   ├── DriverMap.jsx
+│   │   │   │   ├── DriverForm.jsx
+│   │   │   │   └── DriverEarnings.jsx
+│   │   │   │
+│   │   │   ├── 📂 campaigns/
+│   │   │   │   ├── CampaignList.jsx
+│   │   │   │   ├── CampaignForm.jsx
+│   │   │   │   ├── CampaignAnalytics.jsx
+│   │   │   │   └── EmailPreview.jsx
+│   │   │   │
+│   │   │   └── 📂 ai/
+│   │   │       ├── FraudAlert.jsx
+│   │   │       ├── DemandForecast.jsx
+│   │   │       └── RouteOptimizer.jsx
+│   │   │
+│   │   ├── 📂 pages/
+│   │   │   ├── Login.jsx
+│   │   │   ├── Register.jsx
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── Orders.jsx
+│   │   │   ├── OrderDetail.jsx
+│   │   │   ├── Drivers.jsx
+│   │   │   ├── DriverDetail.jsx
+│   │   │   ├── Partners.jsx
+│   │   │   ├── HubPoints.jsx
+│   │   │   ├── Campaigns.jsx
+│   │   │   ├── EmailAnalytics.jsx
+│   │   │   ├── Settings.jsx
+│   │   │   ├── AIDashboard.jsx
+│   │   │   └── NotFound.jsx
+│   │   │
+│   │   ├── 📂 hooks/
+│   │   │   ├── useAuth.js
+│   │   │   ├── useSocket.js
+│   │   │   ├── useWebSocket.js
+│   │   │   └── useNotification.js
+│   │   │
+│   │   ├── 📂 contexts/
+│   │   │   ├── AuthContext.jsx
+│   │   │   ├── SocketContext.jsx
+│   │   │   └── ThemeContext.jsx
+│   │   │
+│   │   ├── 📂 services/
+│   │   │   ├── api.js
+│   │   │   ├── socket.js
+│   │   │   └── storage.js
+│   │   │
+│   │   ├── 📂 utils/
+│   │   │   ├── formatters.js
+│   │   │   ├── validators.js
+│   │   │   └── constants.js
+│   │   │
+│   │   ├── 📂 styles/
+│   │   │   ├── globals.css
+│   │   │   └── tailwind.css
+│   │   │
+│   │   ├── App.jsx
+│   │   └── index.jsx
+│   │
+│   ├── .env
+│   ├── .env.example
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   ├── package.json
+│   ├── vite.config.js
+│   └── tailwind.config.js
+│
+├── 📂 mobile-user/
+│   ├── 📂 lib/
+│   │   ├── main.dart
+│   │   ├── 📂 screens/
+│   │   │   ├── splash_screen.dart
+│   │   │   ├── login_screen.dart
+│   │   │   ├── register_screen.dart
+│   │   │   ├── home_screen.dart
+│   │   │   ├── order_screen.dart
+│   │   │   ├── tracking_screen.dart
+│   │   │   ├── payment_screen.dart
+│   │   │   ├── profile_screen.dart
+│   │   │   ├── history_screen.dart
+│   │   │   └── hub_points_screen.dart
+│   │   │
+│   │   ├── 📂 widgets/
+│   │   │   ├── order_card.dart
+│   │   │   ├── delivery_method_card.dart
+│   │   │   ├── status_timeline.dart
+│   │   │   ├── ai_validation_dialog.dart
+│   │   │   └── loading_widget.dart
+│   │   │
+│   │   ├── 📂 providers/
+│   │   │   ├── auth_provider.dart
+│   │   │   ├── order_provider.dart
+│   │   │   ├── payment_provider.dart
+│   │   │   └── socket_provider.dart
+│   │   │
+│   │   ├── 📂 services/
+│   │   │   ├── api_service.dart
+│   │   │   ├── socket_service.dart
+│   │   │   ├── ai_service.dart
+│   │   │   ├── location_service.dart
+│   │   │   ├── notification_service.dart
+│   │   │   ├── passkey_service.dart
+│   │   │   └── recaptcha_service.dart
+│   │   │
+│   │   ├── 📂 models/
+│   │   │   ├── user.dart
+│   │   │   ├── order.dart
+│   │   │   ├── driver.dart
+│   │   │   └── hub_point.dart
+│   │   │
+│   │   └── 📂 utils/
+│   │       ├── constants.dart
+│   │       ├── helpers.dart
+│   │       └── theme.dart
+│   │
+│   ├── 📂 android/
+│   ├── 📂 ios/
+│   ├── pubspec.yaml
+│   └── .env
+│
+├── 📂 mobile-driver/
+│   ├── 📂 lib/
+│   │   ├── main.dart
+│   │   ├── 📂 screens/
+│   │   │   ├── login_screen.dart
+│   │   │   ├── driver_home_screen.dart
+│   │   │   ├── delivery_screen.dart
+│   │   │   ├── cod_complete_screen.dart
+│   │   │   ├── route_optimization_screen.dart
+│   │   │   ├── earnings_screen.dart
+│   │   │   └── profile_screen.dart
+│   │   │
+│   │   ├── 📂 widgets/
+│   │   │   ├── order_card.dart
+│   │   │   ├── navigation_map.dart
+│   │   │   └── earnings_card.dart
+│   │   │
+│   │   ├── 📂 providers/
+│   │   │   ├── auth_provider.dart
+│   │   │   ├── delivery_provider.dart
+│   │   │   └── location_provider.dart
+│   │   │
+│   │   └── 📂 services/
+│   │       ├── api_service.dart
+│   │       ├── location_service.dart
+│   │       ├── route_service.dart
+│   │       └── camera_service.dart
+│   │
+│   └── pubspec.yaml
+│
+├── 📂 mobile-partner/
+│   ├── 📂 lib/
+│   │   ├── main.dart
+│   │   ├── 📂 screens/
+│   │   │   ├── login_screen.dart
+│   │   │   ├── partner_dashboard.dart
+│   │   │   ├── order_queue_screen.dart
+│   │   │   ├── printer_management.dart
+│   │   │   ├── stock_management.dart
+│   │   │   ├── reports_screen.dart
+│   │   │   └── settings_screen.dart
+│   │   │
+│   │   ├── 📂 widgets/
+│   │   │   ├── order_queue_card.dart
+│   │   │   ├── printer_status_card.dart
+│   │   │   └── earning_chart.dart
+│   │   │
+│   │   ├── 📂 providers/
+│   │   │   ├── auth_provider.dart
+│   │   │   └── order_provider.dart
+│   │   │
+│   │   └── 📂 services/
+│   │       ├── api_service.dart
+│   │       ├── printing_service.dart
+│   │       └── bluetooth_service.dart
+│   │
+│   └── pubspec.yaml
+│
+├── 📂 infrastructure/
+│   ├── 📂 terraform/
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   ├── outputs.tf
+│   │   ├── 📂 modules/
+│   │   │   ├── vpc/
+│   │   │   ├── ecs/
+│   │   │   ├── rds/
+│   │   │   ├── cognito/
+│   │   │   └── ses/
+│   │   └── terraform.tfvars.example
+│   │
+│   ├── 📂 kubernetes/
+│   │   ├── deployment.yaml
+│   │   ├── service.yaml
+│   │   ├── ingress.yaml
+│   │   ├── configmap.yaml
+│   │   └── secrets.yaml
+│   │
+│   ├── 📂 docker/
+│   │   ├── Dockerfile.backend
+│   │   ├── Dockerfile.frontend
+│   │   ├── Dockerfile.nginx
+│   │   └── docker-compose.prod.yml
+│   │
+│   └── 📂 scripts/
+│       ├── setup.sh
+│       ├── backup.sh
+│       ├── restore.sh
+│       ├── monitor.sh
+│       └── deploy.sh
+│
+├── 📂 lambda/
+│   ├── 📂 pre-signup-recaptcha/
+│   │   ├── index.js
+│   │   ├── package.json
+│   │   └── rate-limit.js
+│   │
+│   ├── 📂 custom-message/
+│   │   ├── index.js
+│   │   └── package.json
+│   │
+│   ├── 📂 cognito-triggers/
+│   │   ├── index.js
+│   │   └── package.json
+│   │
+│   └── 📂 email-events-handler/
+│       ├── index.js
+│       └── package.json
+│
+├── 📂 docs/
+│   ├── 📂 api/
+│   │   ├── openapi.yaml
+│   │   └── postman_collection.json
+│   │
+│   ├── 📂 guides/
+│   │   ├── installation.md
+│   │   ├── deployment.md
+│   │   ├── troubleshooting.md
+│   │   └── api-keys.md
+│   │
+│   └── 📂 architecture/
+│       ├── system-design.md
+│       └── database-schema.md
+│
+├── 📂 scripts/
+│   ├── build.sh
+│   ├── test.sh
+│   ├── migrate.sh
+│   └── seed.sh
+│
+├── 📂 .github/
+│   └── 📂 workflows/
+│       ├── ci.yml
+│       ├── cd-backend.yml
+│       ├── cd-frontend.yml
+│       └── mobile-build.yml
+│
+├── .gitignore
+├── README.md
+├── LICENSE
+└── docker-compose.yml

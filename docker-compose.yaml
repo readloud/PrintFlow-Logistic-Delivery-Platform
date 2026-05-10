@@ -1,0 +1,30 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: printflow
+      POSTGRES_USER: printflow
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+  
+  backend:
+    build: .
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql://printflow:secret@postgres:5432/printflow
+      JWT_SECRET: your-secret-key
+  
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+
+volumes:
+  postgres_data:
